@@ -202,5 +202,18 @@
         <item>JamTrendArrow2bImpl</item>
         <item>JamTrendArrow3Impl</item>
     </string-array>
-
+    <string-array name="Libre2Smoothing">
+        <item>Default (doesnt use smoothing duration pref)</item>
+        <item>Median</item>
+        <item>Weighted Average</item>
+        <item>Weighted Average with Extreme values removal</item>
+        <item>Savitzky-Golay least square</item>
+    </string-array>
+    <string-array name="Libre2SmoothingValues">
+        <item>Default</item>
+        <item>Median</item>
+        <item>WeightedAverage</item>
+        <item>WeightedExtremeRemovedAVG</item>
+        <item>SavitzkyGolay</item>
+    </string-array>
 </resources>

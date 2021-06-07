@@ -1177,7 +1177,7 @@ public class BgReading extends Model implements ShareUploadableBg {
                 bgReading.postProcess(false);
 
             } else {
-                Log.d(TAG, "Calibrations, so doing everything bgReading = " + bgReading);
+                Log.d(TAG, "Calibrations, so doing everything bgReading = " + calibration.uuid);
                 bgReading.sensor = sensor;
                 bgReading.sensor_uuid = sensor.uuid;
                 bgReading.calibration = calibration;
@@ -1194,7 +1194,8 @@ public class BgReading extends Model implements ShareUploadableBg {
                 bgReading.calculated_value_slope = 0;
                 bgReading.hide_slope = false;
                 bgReading.appendSourceInfo("Libre2 Native");
-
+                Log.d(TAG, "bgReading.sensor:" + bgReading.sensor + ", bgReading.sensor_uuid:" + bgReading.sensor_uuid + ", bgReading.calibration:" + bgReading.calibration + ", bgReading.calibration_uuid:" + bgReading.calibration_uuid + ", bgReading.raw_data:" + bgReading.raw_data + ", bgReading.age_adjusted_raw_value:" + bgReading.age_adjusted_raw_value + ", bgReading.filtered_data:" + bgReading.filtered_data + ", bgReading.timestamp:" + bgReading.timestamp + ", bgReading.uuid:" + bgReading.uuid);
+                Log.d(TAG, "bgReading.calculated_value:" + bgReading.calculated_value + ", bgReading.filtered_calculated_value:" + bgReading.filtered_calculated_value + ", bgReading.calculated_value_slope:" + bgReading.calculated_value_slope + ", bgReading.hide_slope:" + bgReading.hide_slope);
                 BgReading.updateCalculatedValueToWithinMinMax(bgReading);
 
                 bgReading.find_slope();

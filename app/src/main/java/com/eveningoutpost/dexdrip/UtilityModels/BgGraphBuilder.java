@@ -1060,7 +1060,7 @@ public class BgGraphBuilder {
 
             final boolean show_pseudo_filtered = prefs.getBoolean("show_pseudo_filtered", false);
             final RollingAverage rollingAverage = show_pseudo_filtered ? new RollingAverage(2) : null;
-            final long rollingOffset = show_pseudo_filtered ? (long) (rollingAverage.getPeak() * DEXCOM_PERIOD) : 0;
+            final long rollingOffset = show_pseudo_filtered ? (long) (rollingAverage.GetPpeak() * DEXCOM_PERIOD) : 0;
 
 
             long highest_bgreading_timestamp = -1; // most recent bgreading timestamp we have

@@ -1352,6 +1352,31 @@
                     android:key="Libre2_showSensors"
                     android:summary="switch to On to show additional Information's in Status for Libre 2 Sensors"
                     android:title="show Sensors Infos in Status" />
+                <ListPreference
+                    android:defaultValue="Default"
+                    android:entries="@array/Libre2Smoothing"
+                    android:entryValues="@array/Libre2SmoothingValues"
+                    android:key="Libre2SmoothingMethod"
+                    android:summary="Choose the Method used to smooth Libre 2 sensor raw data."
+                    android:title="Libre 2 smoothing method" />
+                <EditTextPreference
+                    android:key="Smoothing_duration"
+                    android:title="Smoothing Duration"
+                    android:inputType="number"
+                    android:digits="0123456789"
+                    android:summary="Number of minutes of historical values used for smoothing. Default is 25."
+                    android:defaultValue="15"
+                    android:min="3"
+                    android:max="60" />
+                <EditTextPreference
+                    android:key="Libre2ReadingInterval"
+                    android:title="Libre 2 Reading Interval"
+                    android:inputType="number"
+                    android:digits="0123456789"
+                    android:summary="Number of minutes between Readings calculations and broadcasting of values."
+                    android:defaultValue="5"
+                    android:min="1"
+                    android:max="30" />
             </PreferenceScreen>
 
             <CheckBoxPreference
