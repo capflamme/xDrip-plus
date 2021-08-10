@@ -1360,12 +1360,21 @@
                     android:summary="Choose the Method used to smooth Libre 2 sensor raw data."
                     android:title="Libre 2 smoothing method" />
                 <EditTextPreference
-                    android:key="Smoothing_duration"
-                    android:title="Smoothing Duration"
+                    android:key="Smoothing_duration_min"
+                    android:title="Smoothing Duration Min."
                     android:inputType="number"
                     android:digits="0123456789"
-                    android:summary="Number of minutes of historical values used for smoothing. Default is 25."
+                    android:summary="Minimum number of minutes of historical values used for smoothing. Default is 15."
                     android:defaultValue="15"
+                    android:min="3"
+                    android:max="30" />
+                <EditTextPreference
+                    android:key="Smoothing_duration_max"
+                    android:title="Smoothing Duration Max."
+                    android:inputType="number"
+                    android:digits="0123456789"
+                    android:summary="Maximum number of minutes of historical values used for smoothing. Default is 30."
+                    android:defaultValue="30"
                     android:min="3"
                     android:max="60" />
                 <EditTextPreference

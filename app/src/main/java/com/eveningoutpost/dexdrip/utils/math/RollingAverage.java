@@ -52,7 +52,7 @@ public class RollingAverage {
     }
 
     // get the peak position
-    private double peak() {
+    public double peak() {
         return (size - 1) / 2d;
     }
 

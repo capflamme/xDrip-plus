@@ -17,6 +17,7 @@ import android.widget.Toast;
 import com.eveningoutpost.dexdrip.AddCalibration;
 import com.eveningoutpost.dexdrip.GcmActivity;
 import com.eveningoutpost.dexdrip.Home;
+import com.eveningoutpost.dexdrip.LibreReceiver;
 import com.eveningoutpost.dexdrip.Models.APStatus;
 import com.eveningoutpost.dexdrip.Models.BgReading;
 import com.eveningoutpost.dexdrip.Models.BloodTest;
@@ -116,7 +117,7 @@ public class BgGraphBuilder {
     private static final ReentrantLock readings_lock = new ReentrantLock();
 
     private final List<Treatments> treatments;
-    private final static boolean d = false; // debug flag, could be read from preferences
+    private final static boolean d = true; // debug flag, could be read from preferences
 
     private Context context;
     private SharedPreferences prefs;
@@ -169,6 +170,7 @@ public class BgGraphBuilder {
     private KeyStore keyStore = FastStore.getInstance();
 
     private final boolean showSMB = Pref.getBoolean("show_smb_icons", true);
+    private boolean libre2PatchedAppSource = (DexCollectionType.getDexCollectionType() == DexCollectionType.LibreReceiver);
 
     public BgGraphBuilder(Context context) {
         this(context, new Date().getTime() + (60000 * 10));
@@ -181,6 +183,7 @@ public class BgGraphBuilder {
     public BgGraphBuilder(Context context, long start, long end) {
         this(context, start, end, NUM_VALUES, true);
     }
+
     public BgGraphBuilder(Context context, long start, long end, int numValues, boolean show_prediction) {
         this(context,start,end,numValues,show_prediction,false);
     }
@@ -209,8 +212,9 @@ public class BgGraphBuilder {
             loaded_start=start;
             loaded_end=end;
             bgReadings = BgReading.latestForGraph(numValues, start, end);
-            if (DexCollectionType.getDexCollectionType() == DexCollectionType.LibreReceiver)
+            if (libre2PatchedAppSource) {
                 Libre2RawValues = Libre2RawValue.latestForGraph(numValues * 5, start, end);
+            }
             plugin_adjusted = false;
         } finally {
             readings_lock.unlock();
@@ -218,7 +222,13 @@ public class BgGraphBuilder {
 
         if ((end - start) > 80000000) {
             try {
-                capturePercentage = ((bgReadings.size() * 100) / ((end - start) / 300000));
+                if (libre2PatchedAppSource) {
+                    capturePercentage = ((Libre2RawValues.size() * 100) / ((end - start) / 60_000));
+                }
+                else {
+                    capturePercentage = ((bgReadings.size() * 100) / ((end - start) / 300_000));
+
+                }
                 //Log.d(TAG, "CPTIMEPERIOD: " + Long.toString(end - start) + " percentage: " + JoH.qs(capturePercentage));
             } catch (Exception e) {
                 capturePercentage = -1; // invalid reading
@@ -240,14 +250,12 @@ public class BgGraphBuilder {
         hoursPreviewStep = isXLargeTablet(context) ? 2 : 1;
     }
 
-
     private double bgScale() {
         if (doMgdl)
             return Constants.MMOLL_TO_MGDL;
         else
             return 1;
     }
-
 
     static public boolean isXLargeTablet(Context context) {
         return (context.getResources().getConfiguration().screenLayout & Configuration.SCREENLAYOUT_SIZE_MASK) >= Configuration.SCREENLAYOUT_SIZE_XLARGE;
@@ -313,9 +321,6 @@ public class BgGraphBuilder {
 
         return lines;
     }
-
-
-
 
     private List<Line> basalLines() {
         final List<Line> basalLines = new ArrayList<>();
@@ -1030,9 +1035,10 @@ public class BgGraphBuilder {
                 Log.i(TAG, "Reloading as Plugin modified data: " + JoH.backTrace(1) + " size:" + bgReadings.size());
                 bgReadings.clear();
                 bgReadings.addAll(BgReading.latestForGraph(loaded_numValues, loaded_start, loaded_end));
-            } else {
-                //Log.d(TAG, "not adjusted");
             }
+            // else {
+                //Log.d(TAG, "not adjusted");
+            //}
 
             filteredValues.clear();
             rawInterpretedValues.clear();
@@ -1048,7 +1054,7 @@ public class BgGraphBuilder {
             lowValues.clear();
             inRangeValues.clear();
             backfillValues.clear();
-           remoteValues.clear();
+            remoteValues.clear();
             calibrationValues.clear();
             bloodTestValues.clear();
             pluginValues.clear();
@@ -1060,7 +1066,7 @@ public class BgGraphBuilder {
 
             final boolean show_pseudo_filtered = prefs.getBoolean("show_pseudo_filtered", false);
             final RollingAverage rollingAverage = show_pseudo_filtered ? new RollingAverage(2) : null;
-            final long rollingOffset = show_pseudo_filtered ? (long) (rollingAverage.GetPpeak() * DEXCOM_PERIOD) : 0;
+            final long rollingOffset = show_pseudo_filtered ? (long) (rollingAverage.peak() * DEXCOM_PERIOD) : 0;
 
 
             long highest_bgreading_timestamp = -1; // most recent bgreading timestamp we have
@@ -1257,7 +1263,7 @@ public class BgGraphBuilder {
                     avg1value += bgReading.calculated_value;
                 }
 
-                // noise calculator
+
                 if ((!simple || (noise_processed_till_timestamp < highest_bgreading_timestamp)) && (bgReading.timestamp > noise_trendstart) && (bgReading.timestamp > last_calibration)) {
                     if (has_filtered && (bgReading.filtered_calculated_value > 0) && (bgReading.filtered_calculated_value != bgReading.calculated_value)) {
                         final double shifted_timestamp = bgReading.timestamp - timeshift;
@@ -1265,10 +1271,11 @@ public class BgGraphBuilder {
                         if (shifted_timestamp > last_calibration) {
                             if (shifted_timestamp < oldest_noise_timestamp)
                                 oldest_noise_timestamp = shifted_timestamp;
-                            noise_polyxList.add(shifted_timestamp);
-                            noise_polyyList.add((bgReading.filtered_calculated_value));
-                            if (d)
-                                Log.d(TAG, "flt noise poly Added: " + noise_polyxList.size() + " " + JoH.qs(noise_polyxList.get(noise_polyxList.size() - 1)) + " / " + JoH.qs(noise_polyyList.get(noise_polyyList.size() - 1), 2));
+                            if (!libre2PatchedAppSource) {
+                                noise_polyxList.add(shifted_timestamp);
+                                noise_polyyList.add((bgReading.filtered_calculated_value));
+                                UserError.Log.v(TAG, "flt noise poly Added: " + noise_polyxList.size() + " " + JoH.qs(noise_polyxList.get(noise_polyxList.size() - 1)) + " / " + JoH.qs(noise_polyyList.get(noise_polyyList.size() - 1), 2));
+                            }
                         }
 
                     }
@@ -1279,10 +1286,12 @@ public class BgGraphBuilder {
                             newest_noise_timestamp = bgReading.timestamp;
                             original_value = bgReading.calculated_value;
                         }
-                        noise_polyxList.add((double) bgReading.timestamp);
-                        noise_polyyList.add((bgReading.calculated_value));
-                        if (d)
-                            Log.d(TAG, "raw noise poly Added: " + noise_polyxList.size() + " " + JoH.qs(noise_polyxList.get(noise_polyxList.size() - 1)) + " / " + JoH.qs(noise_polyyList.get(noise_polyyList.size() - 1), 2));
+                        // get points for noise calculation, but not if using LibrePatched app hardware source
+                        if (!libre2PatchedAppSource) {
+                            noise_polyxList.add((double) bgReading.timestamp);
+                            noise_polyyList.add((bgReading.calculated_value));
+                            if (d) UserError.Log.v(TAG, "raw noise poly Added: " + noise_polyxList.size() + " " + JoH.qs(noise_polyxList.get(noise_polyxList.size() - 1)) + " / " + JoH.qs(noise_polyyList.get(noise_polyyList.size() - 1), 2));
+                        }
                     }
                 }
 
@@ -1303,7 +1312,7 @@ public class BgGraphBuilder {
             }
 
             try {
-                if (DexCollectionType.getDexCollectionType() == DexCollectionType.LibreReceiver && prefs.getBoolean("Libre2_showRawGraph",false)) {
+                if (libre2PatchedAppSource && prefs.getBoolean("Libre2_showRawGraph",false)) {
                     for (final Libre2RawValue bgLibre : Libre2RawValues) {
                         if (bgLibre.glucose > 0) {
                             rawInterpretedValues.add(new PointValue((float) (bgLibre.timestamp / FUZZER), (float) unitized(bgLibre.glucose)));
@@ -1322,47 +1331,68 @@ public class BgGraphBuilder {
             }
 
 
-            // always calculate noise if needed
+            // calculate noise if needed
             if (noise_processed_till_timestamp < highest_bgreading_timestamp) {
                 // noise evaluate
-                Log.d(TAG, "Noise: Processing new data for noise: " + JoH.dateTimeText(noise_processed_till_timestamp) + " vs now: " + JoH.dateTimeText(highest_bgreading_timestamp));
-
                 try {
-                    if (d) Log.d(TAG, "noise Poly list size: " + noise_polyxList.size());
-                    // TODO Impossible to satisfy noise evaluation size with only raw data do we want it with raw only??
-                    if (noise_polyxList.size() > 5) {
-                        noisePoly = new PolyTrendLine(2);
-                        final double[] noise_polyys = PolyTrendLine.toPrimitiveFromList(noise_polyyList);
-                        final double[] noise_polyxs = PolyTrendLine.toPrimitiveFromList(noise_polyxList);
-                        noisePoly.setValues(noise_polyys, noise_polyxs);
-                        last_noise = noisePoly.errorVarience();
+                    if (!libre2PatchedAppSource) {
+                        // For other data source used the std method with points from BGReadings
+                        if (d) UserError.Log.d(TAG, "Noise: Processing new data for noise: " + JoH.dateTimeText(noise_processed_till_timestamp) + " vs now: " + JoH.dateTimeText(highest_bgreading_timestamp));
+                        if (d) UserError.Log.d(TAG, "Noise: Poly list size: " + noise_polyxList.size());
+                        // TODO Impossible to satisfy noise evaluation size with only raw data do we want it with raw only??
+                        // Calculate noisePoly if we have enough data for reliable calculation
+                        if (noise_polyxList.size() > 5) {
+                            noisePoly = new PolyTrendLine(2);
+                            final double[] noise_polyys = PolyTrendLine.toPrimitiveFromList(noise_polyyList);
+                            final double[] noise_polyxs = PolyTrendLine.toPrimitiveFromList(noise_polyxList);
+                            noisePoly.setValues(noise_polyys, noise_polyxs);
+                            last_noise = noisePoly.errorVarience();
+                        }
+                        else {
+                            noisePoly = null;
+                        }
+                    } else {
+                        // If using Libre2 patched app hardware source, get noisePoly directly from LibreReceiver.java
+                        noisePoly = LibreReceiver.libre2NoisePoly;
+                        last_noise = LibreReceiver.libre2Noise;
+                    }
+                    if (noisePoly != null) {
                         if (newest_noise_timestamp > oldest_noise_timestamp) {
-                            best_bg_estimate = noisePoly.predict(newest_noise_timestamp);
-                            last_bg_estimate = noisePoly.predict(newest_noise_timestamp - DEXCOM_PERIOD);
+                                Calibration calBest = Calibration.getForTimestamp(newest_noise_timestamp);
+                                if (calBest != null) {
+                                    best_bg_estimate = calBest.slope * noisePoly.predict(newest_noise_timestamp) + calBest.intercept;
+                                } else {
+                                    best_bg_estimate = noisePoly.predict(newest_noise_timestamp);
+                                }
+                                Calibration calLast = Calibration.getForTimestamp(newest_noise_timestamp - DEXCOM_PERIOD);
+                                if (calLast != null) {
+                                    last_bg_estimate = calLast.slope * noisePoly.predict(newest_noise_timestamp - DEXCOM_PERIOD) + calLast.intercept;
+                                } else {
+                                    last_bg_estimate = noisePoly.predict(newest_noise_timestamp - DEXCOM_PERIOD);
+                                }
                         } else {
                             best_bg_estimate = -99;
                             last_bg_estimate = -99;
                         }
-                        Log.i(TAG, "Noise: Poly Error Varience: " + JoH.qs(last_noise, 5));
                     } else {
-                        Log.i(TAG, "Noise: Not enough data to get sensible noise value");
-                        noisePoly = null;
+                        UserError.Log.i(TAG, "Noise: Not enough data to perform reliable noise calculation");
                         last_noise = -9999;
                         best_bg_estimate = -9999;
                         last_bg_estimate = -9999;
                     }
+                    UserError.Log.i(TAG, "Noise: Poly Error Varience: " + JoH.qs(last_noise, 2));
                     noise_processed_till_timestamp = highest_bgreading_timestamp; // store that we have processed up to this timestamp
                 } catch (Exception e) {
-                    Log.e(TAG, " Error with noise poly trend: " + e.toString());
+                    Log.e(TAG, "Noise: Error with poly trend: " + e.toString());
                 }
             } else {
-                Log.d(TAG, "Noise Cached noise timestamp: " + JoH.dateTimeText(noise_processed_till_timestamp));
+                UserError.Log.d(TAG, "Noise: Cached noise timestamp: " + JoH.dateTimeText(noise_processed_till_timestamp));
             }
-
+            UserError.Log.d(TAG, "!simple: " + !simple);
             if (!simple) {
                 // momentum
                 try {
-                    if (d) Log.d(TAG, "moment Poly list size: " + polyxList.size());
+                    UserError.Log.d(TAG, "moment Poly list size: " + polyxList.size());
                     if (polyxList.size() > 1) {
                         final double[] polyys = PolyTrendLine.toPrimitiveFromList(polyyList);
                         final double[] polyxs = PolyTrendLine.toPrimitiveFromList(polyxList);
@@ -1381,10 +1411,9 @@ public class BgGraphBuilder {
 
                             }
                         }
-                        if (d)
-                            Log.i(TAG, "set forecast best model to: " + poly.getClass().getSimpleName() + " with varience of: " + JoH.qs(poly.errorVarience(), 4));
+                        UserError.Log.d(TAG, "set forecast best model to: " + poly.getClass().getSimpleName() + " with varience of: " + JoH.qs(poly.errorVarience(), 4));
                     } else {
-                        if (d) Log.i(TAG, "Not enough data for forecast model");
+                        UserError.Log.d(TAG, "Not enough data for forecast model");
                     }
 
                 } catch (Exception e) {
@@ -1459,26 +1488,46 @@ public class BgGraphBuilder {
                 }
                 // noise debug
                 try {
-                    // overlay noise curve
+                    UserError.Log.d(TAG, "Testing if we can show noise working lines. show_noise_working_line: " + show_noise_working_line + ", prediction_enabled: " + prediction_enabled + ", (noisePoly != null): " + (noisePoly != null));
                     if ((show_noise_working_line) && (prediction_enabled) && (noisePoly != null)) {
-                        for (BgReading bgReading : bgReadings) {
-                            // only show working curve for last x hours to a
-                            if ((bgReading.timestamp > oldest_noise_timestamp) && (bgReading.timestamp > last_calibration)) {
-                                double polyPredicty = unitized(noisePoly.predict(bgReading.timestamp));
-                                if (d)
-                                    Log.d(TAG, "noise Poly predict: " + JoH.qs(polyPredicty) + " @ " + JoH.qs(bgReading.timestamp));
-                                if ((polyPredicty < highMark) && (polyPredicty > 0)) {
-                                    PointValue zv = new PointValue((float) (bgReading.timestamp / FUZZER), (float) polyPredicty);
-                                    noisePolyBgValues.add(zv);
+                        UserError.Log.v(TAG, "Noise: calculating noise working lines...");
+                            // overlay noise curve for non LibreReceiver hardware sources
+                            UserError.Log.d(TAG, "libre2PatchedAppSource: " + libre2PatchedAppSource);
+                            if (!libre2PatchedAppSource) {
+                                UserError.Log.d(TAG, "Std noise case");
+                                for (BgReading bgReading : bgReadings) {
+                                    UserError.Log.v(TAG, "bgReading.timestamp: " + JoH.dateTimeText(bgReading.timestamp) + ", bgReading.calculated_value: " + JoH.qs(bgReading.calculated_value));
+                                    // only show working curve for last x hours to a
+                                    if ((bgReading.timestamp > oldest_noise_timestamp) && (bgReading.timestamp > last_calibration)) {
+                                        double polyPredicty = unitized(noisePoly.predict(bgReading.timestamp));
+                                        UserError.Log.v(TAG, "Noise: Poly predict: " + JoH.qs(polyPredicty) + " @ " + JoH.dateTimeText(bgReading.timestamp));
+                                        if ((polyPredicty < highMark) && (polyPredicty > 0)) {
+                                            PointValue zv = new PointValue((float) (bgReading.timestamp / FUZZER), (float) polyPredicty);
+                                            noisePolyBgValues.add(zv);
+                                        }
+                                    }
                                 }
+                            // overlay noise curve for LibreReceiver hardware source
+                            } else {
+                                UserError.Log.d(TAG, "Libre2 noise case");
+                                UserError.Log.d(TAG, "bgReadings.get(0).timestamp: " + JoH.dateTimeText(bgReadings.get(0).timestamp) + ", bgReadings.get(0).calculated_value_mmol(): " + JoH.qs(bgReadings.get(0).calculated_value_mmol(),1));
+                                UserError.Log.d(TAG, "highest_bgreading_timestamp: " + JoH.dateTimeText(highest_bgreading_timestamp));
+                                double noise_calculation_start = highest_bgreading_timestamp - (20 * 60 * 1000);
+                                UserError.Log.d(TAG, "noise_calculation_start: " + JoH.dateTimeText((long) noise_calculation_start) + ", last_calibration: " + JoH.dateTimeText((long)last_calibration));
+                                for (double timestamp = noise_calculation_start; timestamp <= (highest_bgreading_timestamp + 30_000); timestamp = timestamp + FUZZER) {
+                                    double polyPredicty = unitized(noisePoly.predict(timestamp));
+                                    if (polyPredicty > 0) {
+                                        PointValue zv = new PointValue((float) (timestamp / FUZZER), (float) polyPredicty);
+                                        UserError.Log.v(TAG, "Noise: Adding point to noisePolyBgValues: x: " + JoH.dateTimeText((long)timestamp) + ", y: " + JoH.qs(zv.getY(),1));
+                                        noisePolyBgValues.add(zv);
+                                    }
+                                }
+                                if (d) UserError.Log.d(TAG, "noisePolyBgValues.size(): " + noisePolyBgValues.size());
                             }
                         }
+                    } catch (Exception e) {
+                        Log.e(TAG, "Error creating noise working trend: " + e.toString());
                     }
-
-
-                } catch (Exception e) {
-                    Log.e(TAG, "Error creating noise working trend: " + e.toString());
-                }
 
                 //Log.i(TAG,"Average1 value: "+unitized(avg1value));
                 //Log.i(TAG,"Average2 value: "+unitized(avg2value));

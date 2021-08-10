@@ -204,6 +204,7 @@
     </string-array>
     <string-array name="Libre2Smoothing">
         <item>Default (doesnt use smoothing duration pref)</item>
+        <item>Automatic Trendline selection minimizing variance</item>
         <item>Median</item>
         <item>Weighted Average</item>
         <item>Weighted Average with Extreme values removal</item>
@@ -211,6 +212,7 @@
     </string-array>
     <string-array name="Libre2SmoothingValues">
         <item>Default</item>
+        <item>AutomaticTrendline</item>
         <item>Median</item>
         <item>WeightedAverage</item>
         <item>WeightedExtremeRemovedAVG</item>
