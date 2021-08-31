@@ -51,7 +51,7 @@ public class LibreReceiver extends BroadcastReceiver {
     private static String libre_calc_doku="wait for next reading...";
     private static long last_reading = 0;
     public static double libre2Noise = -99999;
-    public static TrendLine libre2NoisePoly;
+    public static TrendLine libre2NoisePoly = null;
 
     @Override
     public void onReceive(final Context context, final Intent intent) {
@@ -96,23 +96,28 @@ public class LibreReceiver extends BroadcastReceiver {
                                 // if(!BgReading.last_within_millis(45 * 6 * 1000 )) {
                                 // modified to set the refresh interval for BgReading calculation in the libre 2 advanced preferences.
                                 Log.v(TAG,"Updating readings every " + Pref.getStringToLong("Libre2ReadingInterval", 5) +" min");
-                                List<Libre2RawValue> libre2NoiseRawValues = Libre2RawValue.last20Minutes();
-                                libre2NoiseRawValues.add(currentRawValue);
-                                libre2NoisePoly = poly(libre2NoiseRawValues,2);
-
-                                if (libre2NoisePoly == null) {
-                                    libre2Noise = -9999;
-                                }
-                                else {
-                                    libre2Noise = libre2NoisePoly.errorVarience();
-                                }
                                 if(!BgReading.last_within_millis(((Pref.getStringToLong("Libre2ReadingInterval", 5)*60)-30)*1000)) {
                                     Log.v(TAG,DateFormat.format("mm:ss",(JoH.tsl() - BgReading.last().timestamp)) + " elapsed since last BG reading. Triggering a new one.");
                                     List<Libre2RawValue> smoothingValues;
+                                    libre2NoisePoly = null;
                                     Log.v(TAG,"SmoothingMethod:"+ Pref.getString("Libre2SmoothingMethod", "Default"));
                                     if (!(Pref.getString("Libre2SmoothingMethod", "Default").equals("Default"))) {
                                         int smoothing_window = 20;
-                                        if (libre2Noise != -9999) {
+                                        List<Libre2RawValue> libre2NoiseRawValues = Libre2RawValue.last20Minutes();
+                                        libre2NoiseRawValues.add(currentRawValue);
+                                        libre2NoisePoly = poly(libre2NoiseRawValues,2);
+                                        if (libre2NoisePoly == null) {
+                                            Log.v(TAG,"libre2NoisePoly = null");
+                                            libre2Noise = -9999;
+                                            Log.v(TAG, "libre2Noise set to -9999");
+                                        }
+                                        else {
+                                            Log.v(TAG,"libre2Noise != null");
+                                            libre2Noise = libre2NoisePoly.errorVarience();
+                                        }
+                                        Log.v(TAG,"libre2NoisePoly == null:" + (libre2NoisePoly == null) + ", libre2Noise:" + JoH.qs(libre2Noise, 2));
+
+                                        if (libre2Noise >= 0) {
                                             int smoothing_window_min = Pref.getStringToInt("Smoothing_duration_min", 20);
                                             int smoothing_window_max = Pref.getStringToInt("Smoothing_duration_max", 20);
                                             if ( (libre2Noise > 0) && (libre2Noise <= BgGraphBuilder.NOISE_TRIGGER_ULTRASENSITIVE)) {
@@ -129,7 +134,7 @@ public class LibreReceiver extends BroadcastReceiver {
                                                 smoothing_window = smoothing_window_max;
                                             }
                                         }
-                                        Log.d(TAG,"Noise: errorVarience: " + JoH.qs(libre2Noise, 2));
+                                        // Log.d(TAG,"Noise: errorVarience: " + JoH.qs(libre2Noise, 2));
                                         Log.d(TAG,"Smoothing window set to " + smoothing_window + " min.");
                                         smoothingValues = Libre2RawValue.lastVariableMinutes(smoothing_window);
                                     }
@@ -249,25 +254,25 @@ public class LibreReceiver extends BroadcastReceiver {
     // Start of Smoothing algos by Capflamme
     public static TrendLine poly(List<Libre2RawValue> RawValues, int degree ) {
         TrendLine poly = new PolyTrendLine(degree);
-        if (RawValues.size() > 5) {
-            final double[] polyXs = new double[RawValues.size()];
-            final double[] polyYs = new double[RawValues.size()];
-            int i = 0;
-            try {
+        try {
+            if (RawValues.size() > 5) {
+                final double[] polyXs = new double[RawValues.size()];
+                final double[] polyYs = new double[RawValues.size()];
+                int i = 0;
                 for (Libre2RawValue rawValue : RawValues) {
                     polyXs[i] = (double) rawValue.timestamp;
                     polyYs[i] = rawValue.glucose;
                     i++;
                 }
                 UserError.Log.d(TAG, "Poly list size: " + polyXs.length);
-                    poly.setValues(polyYs, polyXs);
-            } catch (Exception e) {
-                Log.e(TAG, " Error generating noise poly trend: " + e.toString());
+                poly.setValues(polyYs, polyXs);
+            }
+            else {
+                UserError.Log.d(TAG, "Poly list size to small for reliable caluclation.");
                 poly = null;
             }
-        }
-        else {
-            UserError.Log.d(TAG, "Poly list size to small for reliable caluclation.");
+        } catch (Exception e) {
+            Log.e(TAG, " Error generating noise poly trend: " + e.toString());
             poly = null;
         }
         return poly;
@@ -302,7 +307,7 @@ public class LibreReceiver extends BroadcastReceiver {
         double l2FilteredBg = -99999;
         try {
             libre_calc_doku = "Smoothing window: " + rawValues.size() + "min\n\n";
-            if (rawValues.size() > 4) {
+            if (rawValues.size() > 5) {
                 Collections.sort(rawValues, new SortByGlucoseThenTimeInverted());
                 libre_calc_doku += DateFormat.format("kk:mm:ss:", rawValues.get(0).timestamp) + " w:0.00" + " raw:" + rawValues.get(0).glucose + "#\n";
                 rawValues.remove(0);

@@ -162,6 +162,7 @@ public class BgGraphBuilder {
     private final List<PointValue> noisePolyBgValues = new ArrayList<PointValue>();
     private final List<PointValue> activityValues = new ArrayList<PointValue>();
     private final List<PointValue> annotationValues = new ArrayList<>();
+
     private static TrendLine noisePoly;
     public static double last_noise = -99999;
     public static double original_value = -99999;
@@ -1487,48 +1488,47 @@ public class BgGraphBuilder {
                     show_noise_working_line = prefs.getBoolean("show_noise_workings", false);
                 }
                 // noise debug
-                try {
-                    UserError.Log.d(TAG, "Testing if we can show noise working lines. show_noise_working_line: " + show_noise_working_line + ", prediction_enabled: " + prediction_enabled + ", (noisePoly != null): " + (noisePoly != null));
-                    if ((show_noise_working_line) && (prediction_enabled) && (noisePoly != null)) {
-                        UserError.Log.v(TAG, "Noise: calculating noise working lines...");
-                            // overlay noise curve for non LibreReceiver hardware sources
-                            UserError.Log.d(TAG, "libre2PatchedAppSource: " + libre2PatchedAppSource);
-                            if (!libre2PatchedAppSource) {
-                                UserError.Log.d(TAG, "Std noise case");
-                                for (BgReading bgReading : bgReadings) {
-                                    UserError.Log.v(TAG, "bgReading.timestamp: " + JoH.dateTimeText(bgReading.timestamp) + ", bgReading.calculated_value: " + JoH.qs(bgReading.calculated_value));
-                                    // only show working curve for last x hours to a
-                                    if ((bgReading.timestamp > oldest_noise_timestamp) && (bgReading.timestamp > last_calibration)) {
-                                        double polyPredicty = unitized(noisePoly.predict(bgReading.timestamp));
-                                        UserError.Log.v(TAG, "Noise: Poly predict: " + JoH.qs(polyPredicty) + " @ " + JoH.dateTimeText(bgReading.timestamp));
-                                        if ((polyPredicty < highMark) && (polyPredicty > 0)) {
-                                            PointValue zv = new PointValue((float) (bgReading.timestamp / FUZZER), (float) polyPredicty);
-                                            noisePolyBgValues.add(zv);
-                                        }
-                                    }
-                                }
-                            // overlay noise curve for LibreReceiver hardware source
-                            } else {
-                                UserError.Log.d(TAG, "Libre2 noise case");
-                                UserError.Log.d(TAG, "bgReadings.get(0).timestamp: " + JoH.dateTimeText(bgReadings.get(0).timestamp) + ", bgReadings.get(0).calculated_value_mmol(): " + JoH.qs(bgReadings.get(0).calculated_value_mmol(),1));
-                                UserError.Log.d(TAG, "highest_bgreading_timestamp: " + JoH.dateTimeText(highest_bgreading_timestamp));
-                                double noise_calculation_start = highest_bgreading_timestamp - (20 * 60 * 1000);
-                                UserError.Log.d(TAG, "noise_calculation_start: " + JoH.dateTimeText((long) noise_calculation_start) + ", last_calibration: " + JoH.dateTimeText((long)last_calibration));
-                                for (double timestamp = noise_calculation_start; timestamp <= (highest_bgreading_timestamp + 30_000); timestamp = timestamp + FUZZER) {
-                                    double polyPredicty = unitized(noisePoly.predict(timestamp));
-                                    if (polyPredicty > 0) {
-                                        PointValue zv = new PointValue((float) (timestamp / FUZZER), (float) polyPredicty);
-                                        UserError.Log.v(TAG, "Noise: Adding point to noisePolyBgValues: x: " + JoH.dateTimeText((long)timestamp) + ", y: " + JoH.qs(zv.getY(),1));
+                UserError.Log.d(TAG, "Testing if we can show noise working lines. show_noise_working_line: " + show_noise_working_line + ", prediction_enabled: " + prediction_enabled + ", (noisePoly != null): " + (noisePoly != null));
+                if ((show_noise_working_line) && (prediction_enabled) && (noisePoly != null)) {
+                    UserError.Log.v(TAG, "Noise: calculating noise working lines...");
+                    try {
+                        // overlay noise curve for non LibreReceiver hardware sources
+                        UserError.Log.d(TAG, "libre2PatchedAppSource: " + libre2PatchedAppSource);
+                        if (!libre2PatchedAppSource) {
+                            UserError.Log.d(TAG, "Std noise case");
+                            for (BgReading bgReading : bgReadings) {
+                                UserError.Log.v(TAG, "bgReading.timestamp: " + JoH.dateTimeText(bgReading.timestamp) + ", bgReading.calculated_value: " + JoH.qs(bgReading.calculated_value));
+                                // only show working curve for last x hours to a
+                                if ((bgReading.timestamp > oldest_noise_timestamp) && (bgReading.timestamp > last_calibration)) {
+                                    double polyPredicty = unitized(noisePoly.predict(bgReading.timestamp));
+                                    UserError.Log.v(TAG, "Noise: Poly predict: " + JoH.qs(polyPredicty) + " @ " + JoH.dateTimeText(bgReading.timestamp));
+                                    if ((polyPredicty < highMark) && (polyPredicty > 0)) {
+                                        PointValue zv = new PointValue((float) (bgReading.timestamp / FUZZER), (float) polyPredicty);
                                         noisePolyBgValues.add(zv);
                                     }
                                 }
-                                if (d) UserError.Log.d(TAG, "noisePolyBgValues.size(): " + noisePolyBgValues.size());
                             }
+                        // overlay noise curve for LibreReceiver hardware source
+                        } else {
+                            UserError.Log.d(TAG, "Libre2 noise case");
+                            UserError.Log.d(TAG, "bgReadings.get(0).timestamp: " + JoH.dateTimeText(bgReadings.get(0).timestamp) + ", bgReadings.get(0).calculated_value_mmol(): " + JoH.qs(bgReadings.get(0).calculated_value_mmol(),1));
+                            UserError.Log.d(TAG, "highest_bgreading_timestamp: " + JoH.dateTimeText(highest_bgreading_timestamp));
+                            double noise_calculation_start = highest_bgreading_timestamp - (20 * 60 * 1000);
+                            UserError.Log.d(TAG, "noise_calculation_start: " + JoH.dateTimeText((long) noise_calculation_start) + ", last_calibration: " + JoH.dateTimeText((long)last_calibration));
+                            for (double timestamp = noise_calculation_start; timestamp <= (highest_bgreading_timestamp + 30_000); timestamp = timestamp + FUZZER) {
+                                double polyPredicty = unitized(noisePoly.predict(timestamp));
+                                if (polyPredicty > 0) {
+                                    PointValue zv = new PointValue((float) (timestamp / FUZZER), (float) polyPredicty);
+                                    UserError.Log.v(TAG, "Noise: Adding point to noisePolyBgValues: x: " + JoH.dateTimeText((long)timestamp) + ", y: " + JoH.qs(zv.getY(),1));
+                                    noisePolyBgValues.add(zv);
+                                }
+                            }
+                            if (d) UserError.Log.d(TAG, "noisePolyBgValues.size(): " + noisePolyBgValues.size());
                         }
                     } catch (Exception e) {
                         Log.e(TAG, "Error creating noise working trend: " + e.toString());
                     }
-
+                }
                 //Log.i(TAG,"Average1 value: "+unitized(avg1value));
                 //Log.i(TAG,"Average2 value: "+unitized(avg2value));
 
