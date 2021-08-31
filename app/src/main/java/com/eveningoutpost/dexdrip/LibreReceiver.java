@@ -97,7 +97,7 @@ public class LibreReceiver extends BroadcastReceiver {
                                 // modified to set the refresh interval for BgReading calculation in the libre 2 advanced preferences.
                                 Log.v(TAG,"Updating readings every " + Pref.getStringToLong("Libre2ReadingInterval", 5) +" min");
                                 if(!BgReading.last_within_millis(((Pref.getStringToLong("Libre2ReadingInterval", 5)*60)-30)*1000)) {
-                                    Log.v(TAG,DateFormat.format("mm:ss",(JoH.tsl() - BgReading.last().timestamp)) + " elapsed since last BG reading. Triggering a new one.");
+                                    Log.v(TAG,DateFormat.format("mm:ss",(JoH.tsl() - BgReading.last(true).timestamp)) + " elapsed since last BG reading. Triggering a new one.");
                                     List<Libre2RawValue> smoothingValues;
                                     libre2NoisePoly = null;
                                     Log.v(TAG,"SmoothingMethod:"+ Pref.getString("Libre2SmoothingMethod", "Default"));
@@ -145,7 +145,7 @@ public class LibreReceiver extends BroadcastReceiver {
                                     processValues(currentRawValue, smoothingValues, context);
                                 }
                                 else {
-                                    Log.v(TAG,DateFormat.format("mm:ss",(JoH.tsl() - BgReading.last().timestamp)) + " elapsed since last BG reading. Not triggering a new one yet.");
+                                    Log.v(TAG,DateFormat.format("mm:ss",(JoH.tsl() - BgReading.last(true).timestamp)) + " elapsed since last BG reading. Not triggering a new one yet.");
                                 }
                                 currentRawValue.save();
 
