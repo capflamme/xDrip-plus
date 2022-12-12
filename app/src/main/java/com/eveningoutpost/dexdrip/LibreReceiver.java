@@ -438,6 +438,49 @@ public class LibreReceiver extends BroadcastReceiver {
         }
     }
 
+    private static double calculate1degreeExponantial(List<Libre2RawValue> rawValues) {
+        final double[] smoothedValues;
+        smoothedValues = new double[rawValues.size()];
+        smoothedValues[0] = rawValues.get(0).glucose;
+        double alpha = 0.5;
+        int i = 0;
+        libre_calc_doku="";
+        double Exp1FilteredBg = -9999;
+        try {
+            libre_calc_doku += "Raw values:\n";
+            Log.v(TAG, "SmoothingValues: " + rawValues.size() + ", LatestRawValueTime: " + DateFormat.format("kk:mm:ss :", rawValues.get(rawValues.size() - 1).timestamp) + ", LatestRawValue:" + rawValues.get(rawValues.size() - 1).glucose + ", OldestValueTime: " + DateFormat.format("kk:mm:ss :", rawValues.get(0).timestamp) + ", OldestValue: " + rawValues.get(0).glucose);
+            for (Libre2RawValue rawValue : rawValues) {
+                i++;
+                smoothedValues[i] = smoothedValues[i - 1] + alpha * (rawValue.glucose - smoothedValues[i - 1]);
+            }
+            Exp1FilteredBg = smoothedValues[i];
+        } catch (Exception e) {
+            Log.e(TAG, "Error calcultating weighted average: " + e.toString());
+            UserError.Log.i(TAG, "Error calcultating weighted average: " + e.toString());
+        }
+        UserError.Log.d(TAG, "BG: " + Exp1FilteredBg);
+        return Exp1FilteredBg;
+    }
+
+    private static double calculate2degreeExponantial(List<Libre2RawValue> rawValues) {
+        final double[] smoothedValues;
+        smoothedValues = new double[rawValues.size()];
+        smoothedValues[0] = rawValues.get(0).glucose;
+        final double[] trends;
+        trends = new double[rawValues.size()];
+        trends[0] += rawValues.get(1).glucose - rawValues.get(0).glucose;
+        double alpha = 0.4;
+        double beta = 1.0;
+        int i = 0;
+        for (Libre2RawValue rawValue : rawValues) {
+            i++;
+            smoothedValues[i] = alpha * rawValue.glucose + (1 - alpha) * (smoothedValues[i-1] + trends[i-1]);
+            trends[i] = beta * (smoothedValues[i] - smoothedValues[i-1]) + (1 - beta) * trends[i-1];
+        }
+        return smoothedValues[i];
+    }
+
+
     /*
     private static double calculateLibre2Noise2(List<Libre2RawValue> RawValues, int WeightedAverageWindowMinutes) {
         double sigma = -1;
