@@ -805,9 +805,17 @@ public class Calibration extends Model {
 
     @NonNull
     private static SlopeParameters getSlopeParameters() {
-
+        /*
         if (CollectionServiceStarter.isLibre2App((Context)null)) {
             return new Li2AppParameters();
+        }
+        */
+        if (CollectionServiceStarter.isLibre2App((Context)null)) {
+            if (Pref.getBooleanDefaultFalse("use_non_fixed_li_parameters")) {
+                return new LiParametersNonFixed();
+            } else {
+                return new Li2AppParameters();
+            }
         }
 
         if (CollectionServiceStarter.isLimitter()) {

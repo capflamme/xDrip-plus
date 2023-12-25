@@ -1407,6 +1407,40 @@
                     android:key="Libre2_showSensors"
                     android:summary="@string/summary_Lib2_show_sense_on_status"
                     android:title="@string/title_Lib2_show_sense_on_status" />
+                <ListPreference
+                    android:defaultValue="Default"
+                    android:entries="@array/Libre2Smoothing"
+                    android:entryValues="@array/Libre2SmoothingValues"
+                    android:key="Libre2SmoothingMethod"
+                    android:summary="Choose the Method used to smooth Libre 2 sensor raw data."
+                    android:title="Libre 2 smoothing method" />
+                <EditTextPreference
+                    android:key="Smoothing_duration_min"
+                    android:title="Smoothing Duration Min."
+                    android:inputType="number"
+                    android:digits="0123456789"
+                    android:summary="Minimum number of minutes of historical values used for smoothing. Default is 15."
+                    android:defaultValue="15"
+                    android:min="3"
+                    android:max="30" />
+                <EditTextPreference
+                    android:key="Smoothing_duration_max"
+                    android:title="Smoothing Duration Max."
+                    android:inputType="number"
+                    android:digits="0123456789"
+                    android:summary="Maximum number of minutes of historical values used for smoothing. Default is 30."
+                    android:defaultValue="30"
+                    android:min="3"
+                    android:max="60" />
+                <EditTextPreference
+                    android:key="Libre2ReadingInterval"
+                    android:title="Libre 2 Reading Interval"
+                    android:inputType="number"
+                    android:digits="0123456789"
+                    android:summary="Number of minutes between Readings calculations and broadcasting of values."
+                    android:defaultValue="5"
+                    android:min="1"
+                    android:max="30" />
             </PreferenceScreen>
 
             <CheckBoxPreference

@@ -148,6 +148,14 @@ public class Pref {
         }
     }
 
+    public static long getStringToLong(final String pref, final long defaultValue) {
+        try {
+            return JoH.tolerantParseLong(getString(pref, Double.toString(defaultValue)), defaultValue);
+        } catch (Exception e) {
+            return defaultValue;
+        }
+    }
+
     public static boolean setInt(final String pref, final int num) {
         initializePrefs();
         if (prefs != null) {

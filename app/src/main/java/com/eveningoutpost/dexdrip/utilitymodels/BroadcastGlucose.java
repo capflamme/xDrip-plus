@@ -114,7 +114,7 @@ public class BroadcastGlucose {
 
 
                     } else {
-                        final String msg = "Not locally broadcasting due to noise block level of: " + noiseBlockLevel + " and noise of; " + JoH.roundDouble(dg.noise, 1);
+                        final String msg = "Not locally broadcasting due to noise block level of: " + noiseBlockLevel + " and current noise is: " + JoH.roundDouble(dg.noise, 1);
                         UserError.Log.e("LocalBroadcast", msg);
                         JoH.static_toast_long(msg);
                     }

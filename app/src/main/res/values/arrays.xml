@@ -83,7 +83,7 @@
         <item>calibrate_raw</item>
         <item>calibrate_glucose</item>
     </string-array>
-    
+
     <string-array name="SendToPebbleChoice">
 
         <item>Standard Watchface (old)</item>
@@ -546,4 +546,19 @@
         <item>180</item>
     </string-array>
 
+    <string-array name="Libre2Smoothing">
+        <item>Default (doesn\'t use smoothing duration pref)</item>
+        <item>Automatic Trendline selection minimizing variance</item>
+        <item>Median</item>
+        <item>Weighted Average</item>
+        <item>Weighted Average with Extreme values removal</item>
+        <item>Savitzky-Golay least square</item>
+    </string-array>
+    <string-array name="Libre2SmoothingValues">
+        <item>Default</item>
+        <item>AutomaticTrendline</item>
+        <item>Median</item>
+        <item>WeightedExtremeRemovedAVG</item>
+        <item>SavitzkyGolay</item>
+    </string-array>
 </resources>
