@@ -550,7 +550,6 @@
         <item>Default (doesn\'t use smoothing duration pref)</item>
         <item>Automatic Trendline selection minimizing variance</item>
         <item>Median</item>
-        <item>Weighted Average</item>
         <item>Weighted Average with Extreme values removal</item>
         <item>Savitzky-Golay least square</item>
     </string-array>
