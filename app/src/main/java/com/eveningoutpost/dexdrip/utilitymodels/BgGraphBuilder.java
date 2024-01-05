@@ -1569,8 +1569,8 @@ public class BgGraphBuilder {
                                     noisePolyBgValues.add(zv);
                                 }
                             }
-                            if (d) UserError.Log.d(TAG, "noisePolyBgValues.size(): " + noisePolyBgValues.size());
                         }
+                        if (d) UserError.Log.d(TAG, "noisePolyBgValues.size(): " + noisePolyBgValues.size());
                     } catch (Exception e) {
                         Log.e(TAG, "Error creating noise working trend: " + e.toString());
                     }
